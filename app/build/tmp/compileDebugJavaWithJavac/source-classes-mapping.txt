@@ -1,0 +1,2 @@
+mx/tecnm/tepic/ladm_u4_practica1_autocontestadora/BuildConfig.java
+ mx.tecnm.tepic.ladm_u4_practica1_autocontestadora.BuildConfig

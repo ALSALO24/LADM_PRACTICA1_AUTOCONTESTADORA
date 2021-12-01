@@ -2,6 +2,7 @@ package mx.tecnm.tepic.ladm_u4_practica1_autocontestadora
 
 import android.R
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -14,64 +15,83 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.android.synthetic.main.activity_lista_blanca.*
 import kotlinx.android.synthetic.main.activity_lista_negra.*
+import kotlinx.android.synthetic.main.activity_main.*
 import java.text.SimpleDateFormat
 import java.util.*
-
-class llamadas: BroadcastReceiver() {
-
-    val baseRemota = FirebaseFirestore.getInstance()
-    var telephonyManager: TelephonyManager? = null
-    var status = false
-    var contacto = ""
+private var telephonyState = false
 
 
-    override fun onReceive(context: Context, intent: Intent?) {
-        Toast.makeText(context, "Se envio en SMS", Toast.LENGTH_LONG).show()
-        telephonyManager =
-            context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-
-        val listenerTelefono: PhoneStateListener = object : PhoneStateListener() {
-
-            override fun onCallStateChanged(state: Int, phoneNumber: String) {
-                super.onCallStateChanged(state, phoneNumber)
-                status = false
-
-                when (state) {
-                    TelephonyManager.CALL_STATE_RINGING -> {
-
-                        baseRemota.collection("listaBlanca")
-                            .whereEqualTo("telefono", phoneNumber)
-                            .get()
-                            .addOnSuccessListener { documents ->
-                                for (document in documents) {
-                                    contacto = document.getString("nombre")!!
-                                }
-                                    SmsManager.getDefault().sendTextMessage(
-                                        phoneNumber,
-                                        null,
-                                        "POR EL MOMENTO NO PUEDO ATENDERTE, YO ME COMUNICO CONTIGO",
-                                        null,
-                                        null
-                                    )
-                                    Toast.makeText(context, "Se envio en SMS", Toast.LENGTH_LONG).show()
+class llamadas:  BroadcastReceiver() {
+    val db = FirebaseFirestore.getInstance()
+    val db2 = FirebaseFirestore.getInstance()
+    var listaBlanca = ArrayList<String>()
 
 
 
+    override fun onReceive(context: Context?, intent: Intent?) {
+
+        if(intent!!.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_RINGING){
+            telephonyState = true
+        }
+
+        if(intent.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_OFFHOOK){
+            telephonyState = false
+        }
+
+        if(telephonyState && intent.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_IDLE){
+            val numero = intent.extras?.getString("incoming_number")
+            var status = ""
+
+            db.collection("listaBlanca").addSnapshotListener { value, error ->
+                if(error !=null)
+                {
+                    return@addSnapshotListener
+                }
+                listaBlanca.clear()
+
+                for (i in value!!){
+                    val num = i.get("telefono")
+                    listaBlanca.add(num.toString())
+                }
+
+                db2.collection("estado")
+                    .addSnapshotListener { querySnapshot, error ->
+                        if (error != null) {
+                            //mensaje(error.message!!)
+                            return@addSnapshotListener
+                        }//if
+
+                        for (document in querySnapshot!!) {
+                            status = "${document.get("status")}"
+                        }
+
+                        if (status.equals("1")) {
+
+
+                            if (listaBlanca.contains(numero.toString())) {
+                                val SMS = SmsManager.getDefault()
+                                Toast.makeText(context, "ENVIANDO MENSAJE...", Toast.LENGTH_LONG)
+                                    .show()
+                                SMS.sendTextMessage(
+                                    numero,
+                                    null,
+                                    "TE LLAMO MAS TARDE AMIGO.",
+                                    null,
+                                    null
+                                )
+
+                                Toast.makeText(context, "¡MENSAJE ENVIADO!", Toast.LENGTH_LONG)
+                                    .show()
                             }
 
+
+                        }
                     }
-                }
             }
         }
 
-        if(!isLitening) {
-            telephonyManager!!.listen(listenerTelefono, PhoneStateListener.LISTEN_CALL_STATE)
-            isLitening = true
-        }
-    }
-    companion object{
-        var isLitening = false
     }
 
 }

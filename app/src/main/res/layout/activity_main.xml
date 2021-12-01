@@ -14,7 +14,7 @@
         android:layout_marginTop="20dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lista nube"
+        android:text="Lista de Contactos"
         android:textSize="40dp"
         android:gravity="center"
         android:textColor="@color/black"
@@ -40,12 +40,24 @@
         android:layout_marginTop="160dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Estatus"
+        android:text="Estatus Autocontestadora"
         android:textSize="40dp"
         android:gravity="center"
         android:textColor="@color/black"
         android:textStyle="bold"
         />
+
+    <TextView
+        android:id="@+id/textView"
+        android:textStyle="bold"
+        android:background="@color/purple_200"
+        android:textColor="@color/black"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:textSize="40dp"
+        android:text="ACTIVADO" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

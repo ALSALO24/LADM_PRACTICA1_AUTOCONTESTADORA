@@ -8,61 +8,72 @@ import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.widget.Toast
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.android.synthetic.main.activity_main.*
+
+private var telephonyState = false
 
 class llamadasNo:  BroadcastReceiver() {
-    val baseRemota = FirebaseFirestore.getInstance()
-    var telephonyManager: TelephonyManager? = null
-    var status = false
-    var contacto = ""
+    val db = FirebaseFirestore.getInstance()
+    val db2 = FirebaseFirestore.getInstance()
+    var listaNegra = ArrayList<String>()
 
 
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        if(intent!!.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_RINGING){
+            telephonyState = true
+        }
 
-        telephonyManager =
-            context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        if(intent.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_OFFHOOK){
+            telephonyState = false
+        }
 
-        val listenerTelefono: PhoneStateListener = object : PhoneStateListener() {
-                
-            override fun onCallStateChanged(state: Int, phoneNumber: String) {
-                super.onCallStateChanged(state, phoneNumber)
-                status = false
+        if(telephonyState && intent.getStringExtra(TelephonyManager.EXTRA_STATE) == TelephonyManager.EXTRA_STATE_IDLE){
+            val numero = intent.extras?.getString("incoming_number")
+            var status = ""
+            db.collection("listaNegra").addSnapshotListener { value, error ->
+                if(error !=null)
+                {
+                    return@addSnapshotListener
+                }
+                listaNegra.clear()
 
-                when (state) {
-                    TelephonyManager.CALL_STATE_RINGING -> {
+                for (i in value!!){
+                    val num = i.get("telefono")
+                    listaNegra.add(num.toString())
+                }
 
+                db2.collection("estado")
+                    .addSnapshotListener { querySnapshot, error ->
+                        if (error != null) {
+                            //mensaje(error.message!!)
+                            return@addSnapshotListener
+                        }//if
 
-                        baseRemota.collection("listaNegra")
-                            .whereEqualTo("telefono", phoneNumber)
-                            .get()
-                            .addOnSuccessListener { documents ->
-                                for (document in documents) {
-                                    contacto = document.getString("nombre")!!
-                                }
-                                SmsManager.getDefault().sendTextMessage(
-                                    phoneNumber,
+                        for (document in querySnapshot!!) {
+                            status = "${document.get("status")}"
+                        }
+
+                        if (status.equals("1")) {
+
+                            if (listaNegra.contains(numero.toString())) {
+                                val SMS = SmsManager.getDefault()
+                                Toast.makeText(context, "ENVIANDO MENSAJE...", Toast.LENGTH_LONG)
+                                    .show()
+                                SMS.sendTextMessage(
+                                    numero,
                                     null,
-                                    "NO ME LLAMES POR FAVOR NO INCISTAS",
+                                    "PORFA NO ME LLAMES, BRO.",
                                     null,
                                     null
                                 )
-                                Toast.makeText(context, "Se envio en SMS", Toast.LENGTH_LONG).show()
-
-
-
+                                Toast.makeText(context, "¡MENSAJE ENVIADO!", Toast.LENGTH_LONG)
+                                    .show()
                             }
-
+                        }
                     }
-                }
             }
         }
 
-        if(!isLitening) {
-            telephonyManager!!.listen(listenerTelefono, PhoneStateListener.LISTEN_CALL_STATE)
-            isLitening = true
-        }
-    }
-    companion object{
-        var isLitening = false
     }
 
-}
+    }

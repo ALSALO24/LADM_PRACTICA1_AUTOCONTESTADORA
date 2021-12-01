@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "COMPATIBLE_SCREEN_MANIFEST",
+    "kind": "Directory"
+  },
+  "applicationId": "mx.tecnm.tepic.ladm_u4_practica1_autocontestadora",
+  "variantName": "debug",
+  "elements": []
+}
